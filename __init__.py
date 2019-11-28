@@ -7,7 +7,7 @@
 # based on the Japanese Definitions for Korean Vocabulary plugin for Anki
 # pulls definitions from Weblio's dictionary.
 
-from bs4.BeautifulSoup import BeautifulSoup
+from bs4 import BeautifulSoup
 import urllib.request
 import urllib.parse
 import urllib.error
@@ -31,24 +31,25 @@ jap_defField = 'JapaneseDefinition'
 
 def fetchDef(term):
     defText = ""
-    pageUrl = ("http://kjjk.weblio.jp/content/"  # change URL
+    pageUrl = ("http://weblio.jp/content/"
                + urllib.parse.quote(term.encode('utf-8')))
     response = urllib.request.urlopen(pageUrl)
-    soup = BeautifulSoup(response)
-    NetDicBody = soup.find('div', class_="kiji")  # OK
+    soup = BeautifulSoup(response, features="lxml")
+    NetDicBody = soup.find('div', {'class': "kiji"})
 
     if NetDicBody is not None:
-        test = NetDicBody.find_all('span', {"lang": "ja"})  # no such element
+        mult_def = NetDicBody.find_all('span', {'style': "text-indent:0;"})
         counter = 1
 
-        if test is not None:
-            for line in test:
-                if str(line).find(term) == -1:  # require better formating
-                    defText += "(" + str(counter) + ") " + str(line) + "<br/>"
+        if mult_def != []:
+            for line in mult_def:
+                if line.find('span', {'style': "text-indent:0;"}) is None:
+                    defText += ("(" + str(counter) + ") "
+                                + line.get_text().strip() + "<br/>")
                     counter = counter + 1
+        else:
+            defText = NetDicBody.get_text().strip()
 
-    if defText != "":
-        defText = string.replace(defText, ',', ', ')
     return defText
 
 # Update note =================================================================
