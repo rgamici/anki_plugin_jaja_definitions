@@ -14,7 +14,7 @@ The add-on requires two fields:
 * **Japanese**: the field containing your Japanese expression.
 * **JapaneseDefinition**: the field that'll contain the Japanese definitions.
 
-These names can be changed to your liking by opening the *__init__.py* file with a text-editor and editting `expressionField = Japanese'` and `jap_defField = 'JapaneseDefinition'`.
+These names can be changed to your liking by opening the *__init__.py* file with a text-editor and editing `expressionField = Japanese'` and `jap_defField = 'JapaneseDefinition'`.
 The file can be found in your anki add-ons folder.
 
 ## Usage

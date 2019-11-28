@@ -34,7 +34,7 @@ def fetchDef(term):
     pageUrl = ("http://weblio.jp/content/"
                + urllib.parse.quote(term.encode('utf-8')))
     response = urllib.request.urlopen(pageUrl)
-    soup = BeautifulSoup(response, features="lxml")
+    soup = BeautifulSoup(response, features="html.parser")
     NetDicBody = soup.find('div', {'class': "kiji"})
 
     if NetDicBody is not None:
@@ -62,14 +62,13 @@ def glossNote(f):
 
 
 def setupMenu(ed):
-    a = QAction('Regenerate KJ definitions', ed)
-    a.triggered.connect(lambda e=ed: onRegenGlosses(e))
+    a = QAction('Regenerate Japanese definitions', ed)
+    a.triggered.connect(lambda _, e=ed: onRegenGlosses(e))
     ed.form.menuEdit.addAction(a)
 
 
 def onRegenGlosses(ed):
     n = "Regenerate Ja-Ja definitions"
-    ed.editor.saveNow()
     regenGlosses(ed, ed.selectedNotes())
     mw.requireReset()
 
@@ -77,7 +76,7 @@ def onRegenGlosses(ed):
 def regenGlosses(ed, fids):
     mw.progress.start(max=len(fids), immediate=True)
     for (i, fid) in enumerate(fids):
-        mw.progress.update(label='Generating Ja-Ja definitions...', value=i)
+        mw.progress.update(label='Generating Japanese definitions...', value=i)
         f = mw.col.getNote(id=fid)
         try:
             glossNote(f)
