@@ -31,7 +31,7 @@ jap_defField = 'JapaneseDefinition'
 
 def fetchDef(term):
     defText = ""
-    pageUrl = ("http://weblio.jp/content/"
+    pageUrl = ("http://www.weblio.jp/content/"
                + urllib.parse.quote(term.encode('utf-8')))
     response = urllib.request.urlopen(pageUrl)
     soup = BeautifulSoup(response, features="html.parser")
