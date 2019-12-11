@@ -44,14 +44,19 @@ def fetchDef(term):
         if mult_def != []:
             for line in mult_def:
                 if line.find('span', {'style': "text-indent:0;"}) is None:
-                    defText += ("(" + str(counter) + ") "
+                    defText += ("<b>(" + str(counter) + ")</b> "
                                 + line.get_text().strip() + "<br/>")
                     counter = counter + 1
         else:
             defText = NetDicBody.get_text().strip()
-
+            # remove entry header (ends with "】 *")
+            defText = re.sub('^.*】 *', '', defText)
+            defText = re.sub(' *» 類語の一覧を見る *', '', defText)
+            defText = re.sub(' *>>『三省堂 大辞林 第三版』の表記' +
+                             '・記号についての解説を見る', '', defText)
+            defText = re.sub('「' + term + '」に似た言葉',
+                             '<br/><b>似た言葉：</b>　', defText)
     return defText
-
 # Update note =================================================================
 
 
