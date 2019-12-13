@@ -24,13 +24,11 @@ import threading
 import traceback
 
 
-# Variables
-# Edit these field names if necessary =========================================
-expressionField = 'Japanese'
-jap_defField = 'JapaneseDefinition'
-# ==============================================================================
-max_threads = 15
-# ==============================================================================
+# Variables (can be edited on Addons > Config
+config = mw.addonManager.getConfig(__name__)
+expressionField = config['expressionField']
+jap_defField = config['jap_defField']
+max_threads = config['max_threads']
 
 # Fetch definition from Weblio ================================================
 
@@ -75,6 +73,8 @@ class Regen():
         self.ed = ed
         self.fids = fids
         self.completed = 0
+        config = mw.addonManager.getConfig(__name__)
+        max_threads = config['max_threads']
         self.sema = threading.BoundedSemaphore(max_threads)
         self.values = {}
         if len(self.fids) == 1:  # Single card selected
