@@ -57,6 +57,7 @@ def fetchDef(term):
             defText = NetDicBody.get_text().strip()
             # remove entry header (ends with "】 *")
             defText = re.sub('^.*】 *', '', defText)
+            defText = re.sub('^.{1,10}読み方：[^ ]{1,20} +', '', defText)
             defText = re.sub(' *» 類語の一覧を見る *', '', defText)
             defText = re.sub(' *>>『三省堂 大辞林 第三版』の表記' +
                              '・記号についての解説を見る', '', defText)
