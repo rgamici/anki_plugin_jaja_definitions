@@ -9,8 +9,10 @@ The add-on crawls Weblio's dictionary and scrapes the definition for each note.
 
 ## Bugs and workarounds
 
-It currently doesn't work if only one card is selected, see [bug #9](https://github.com/rgamici/anki_plugin_jaja_definitions/issues/9).
-But, it should work if another note or card is selected (it will hide the note fields at the bottom) before clicking on "Regenerate Japanese Definitions."
+~~It currently doesn't work if only one card is selected, see [bug #9](https://github.com/rgamici/anki_plugin_jaja_definitions/issues/9).
+But, it should work if another note or card is selected (it will hide the note fields at the bottom) before clicking on "Regenerate Japanese Definitions."~~  
+**Fixed**.
+Now, it works if a single card is selected.
 
 ## Requirements
 
