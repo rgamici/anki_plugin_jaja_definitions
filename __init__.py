@@ -61,7 +61,7 @@ def fetchDef(term):
             defText = re.sub(' *» 類語の一覧を見る *', '', defText)
             defText = re.sub(' *>>『三省堂 大辞林 第三版』の表記' +
                              '・記号についての解説を見る', '', defText)
-            defText = re.sub('「' + term + '」に似た言葉',
+            defText = re.sub('「.{1,10}」に似た言葉',
                              '<br/><b>似た言葉：</b>　', defText)
     return defText
 # Update note =================================================================
