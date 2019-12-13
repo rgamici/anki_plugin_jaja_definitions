@@ -20,10 +20,16 @@ from PyQt5.QtGui import *
 from anki.hooks import addHook
 from anki.notes import Note
 from aqt import mw
+import threading
+import traceback
 
+
+# Variables
 # Edit these field names if necessary =========================================
 expressionField = 'Japanese'
 jap_defField = 'JapaneseDefinition'
+# ==============================================================================
+max_threads = 15
 # ==============================================================================
 
 # Fetch definition from Weblio ================================================
@@ -60,10 +66,68 @@ def fetchDef(term):
 # Update note =================================================================
 
 
-def glossNote(f):
-    if f[jap_defField]:
-        return
-    f[jap_defField] = fetchDef(f[expressionField])
+class Regen():
+    def __init__(self, ed, fids):
+        self.ed = ed
+        self.fids = fids
+        self.completed = 0
+        self.sema = threading.BoundedSemaphore(max_threads)
+        self.values = {}
+        mw.progress.start(max=len(self.fids), immediate=True)
+        mw.progress.update(
+            label='Generating Japanese definitions...',
+            value=0)
+
+    def prepare(self):
+        fs = [mw.col.getNote(id=fid) for fid in self.fids]
+        for f in fs:
+            try:
+                if f[jap_defField]:
+                    self.completed += 1
+                    mw.progress.update(
+                        label='Generating Japanese definitions...',
+                        value=self.completed)
+                else:
+                    word = f[expressionField]
+                    thread = threading.Thread(target=self.fetch_def,
+                                              args=(word,))
+                    self.values[word] = {}
+                    self.values[word]['f'] = f
+                    self.values[word]['thread'] = thread
+                    thread.start()
+            except:
+                print('definitions failed:')
+                traceback.print_exc()
+
+    def fetch_def(self, word):
+        with self.sema:
+            definition = fetchDef(word)
+            self.values[word]['definition'] = definition
+
+    def wait_threads(self):
+        for word, info in self.values.items():
+            thread = self.values[word]['thread']
+            thread.join()
+            self.update_def(word)
+        mw.progress.finish()
+
+    def update_def(self, word):
+        definition = self.values[word]['definition']
+        f = self.values[word]['f']
+        try:
+            f[jap_defField] = definition
+        except:
+            print('definitions failed:')
+            traceback.print_exc()
+        try:
+            f.flush()
+        except:
+            raise Exception()
+        self.ed.onRowChanged(f, f)
+        self.completed += 1
+        mw.progress.update(
+            label='Generating Japanese definitions...',
+            value=self.completed)
 
 
 def setupMenu(ed):
@@ -74,27 +138,11 @@ def setupMenu(ed):
 
 def onRegenGlosses(ed):
     n = "Regenerate Ja-Ja definitions"
-    regenGlosses(ed, ed.selectedNotes())
+    # regenGlosses(ed, ed.selectedNotes())
+    regen = Regen(ed, ed.selectedNotes())
+    regen.prepare()
+    regen.wait_threads()
     mw.requireReset()
-
-
-def regenGlosses(ed, fids):
-    mw.progress.start(max=len(fids), immediate=True)
-    for (i, fid) in enumerate(fids):
-        mw.progress.update(label='Generating Japanese definitions...', value=i)
-        f = mw.col.getNote(id=fid)
-        try:
-            glossNote(f)
-        except:
-            import traceback
-            print('definitions failed:')
-            traceback.print_exc()
-        try:
-            f.flush()
-        except:
-            raise Exception()
-        ed.onRowChanged(f, f)
-    mw.progress.finish()
 
 
 addHook('browser.setupMenus', setupMenu)
