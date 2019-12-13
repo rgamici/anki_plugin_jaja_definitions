@@ -74,6 +74,9 @@ class Regen():
         self.completed = 0
         self.sema = threading.BoundedSemaphore(max_threads)
         self.values = {}
+        if len(self.fids) == 1:  # Single card selected
+            self.row = self.ed.currentRow()
+            self.ed.form.tableView.selectionModel().clear()
         mw.progress.start(max=len(self.fids), immediate=True)
         mw.progress.update(
             label='Generating Japanese definitions...',
@@ -111,6 +114,8 @@ class Regen():
             thread.join()
             self.update_def(word)
         mw.progress.finish()
+        if len(self.fids) == 1:
+            self.ed.form.tableView.selectRow(self.row)
 
     def update_def(self, word):
         definition = self.values[word]['definition']
@@ -124,7 +129,6 @@ class Regen():
             f.flush()
         except:
             raise Exception()
-        self.ed.onRowChanged(f, f)
         self.completed += 1
         mw.progress.update(
             label='Generating Japanese definitions...',
@@ -139,7 +143,6 @@ def setupMenu(ed):
 
 def onRegenGlosses(ed):
     n = "Regenerate Ja-Ja definitions"
-    # regenGlosses(ed, ed.selectedNotes())
     regen = Regen(ed, ed.selectedNotes())
     regen.prepare()
     regen.wait_threads()
