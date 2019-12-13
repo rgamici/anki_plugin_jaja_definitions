@@ -42,11 +42,9 @@ def fetchDef(term):
     response = urllib.request.urlopen(pageUrl)
     soup = BeautifulSoup(response, features="html.parser")
     NetDicBody = soup.find('div', {'class': "kiji"})
-
     if NetDicBody is not None:
         mult_def = NetDicBody.find_all('span', {'style': "text-indent:0;"})
         counter = 1
-
         if mult_def != []:
             for line in mult_def:
                 if line.find('span', {'style': "text-indent:0;"}) is None:
@@ -55,6 +53,11 @@ def fetchDef(term):
                     counter = counter + 1
         else:
             defText = NetDicBody.get_text().strip()
+            honorific = re.search(
+                '名詞「(.*?)」に、接頭辞「.」がついたもの。',
+                defText)
+            if honorific:
+                return(fetchDef(honorific.group(1)))
             # remove entry header (ends with "】 *")
             defText = re.sub('^.*】 *', '', defText)
             defText = re.sub('^.{1,10}読み方：[^ ]{1,20} +', '', defText)
