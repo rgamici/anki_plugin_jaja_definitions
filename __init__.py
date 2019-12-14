@@ -152,6 +152,12 @@ def setupMenu(ed):
     ed.form.menuEdit.addAction(a)
 
 
+def addToContextMenu(view, menu):
+    menu.addSeparator()
+    a = menu.addAction('Regenerate Japanese definitions')
+    a.triggered.connect(lambda _, e=view: onRegenGlosses(e))
+
+
 def onRegenGlosses(ed):
     n = "Regenerate Ja-Ja definitions"
     regen = Regen(ed, ed.selectedNotes())
@@ -161,3 +167,4 @@ def onRegenGlosses(ed):
 
 
 addHook('browser.setupMenus', setupMenu)
+addHook('browser.onContextMenu', addToContextMenu)
