@@ -28,7 +28,8 @@ import traceback
 config = mw.addonManager.getConfig(__name__)
 expressionField = config['expressionField']
 jap_defField = config['jap_defField']
-max_threads = config['max_threads']
+# max_threads = config['max_threads']
+# force_update = config['force_update']
 
 # Fetch definition from Weblio ================================================
 
@@ -74,8 +75,10 @@ class Regen():
         self.fids = fids
         self.completed = 0
         config = mw.addonManager.getConfig(__name__)
-        max_threads = config['max_threads']
-        self.sema = threading.BoundedSemaphore(max_threads)
+        self.max_threads = config['max_threads']
+        self.force_update = config['force_update']
+        self.update_separator = config['update_separator']
+        self.sema = threading.BoundedSemaphore(self.max_threads)
         self.values = {}
         if len(self.fids) == 1:  # Single card selected
             self.row = self.ed.currentRow()
@@ -89,7 +92,7 @@ class Regen():
         fs = [mw.col.getNote(id=fid) for fid in self.fids]
         for f in fs:
             try:
-                if f[jap_defField]:
+                if self.force_update == 'no' and f[jap_defField]:
                     self.completed += 1
                     mw.progress.update(
                         label='Generating Japanese definitions...',
@@ -124,7 +127,12 @@ class Regen():
         definition = self.values[word]['definition']
         f = self.values[word]['f']
         try:
-            f[jap_defField] = definition
+            if self.force_update == "append":
+                if f[jap_defField]:
+                    f[jap_defField] += self.update_separator
+                f[jap_defField] += definition
+            else:
+                f[jap_defField] = definition
         except:
             print('definitions failed:')
             traceback.print_exc()
