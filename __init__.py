@@ -28,6 +28,7 @@ import traceback
 config = mw.addonManager.getConfig(__name__)
 expressionField = config['expressionField']
 jap_defField = config['jap_defField']
+keybinding = config['keybinding']
 # max_threads = config['max_threads']
 # force_update = config['force_update']
 
@@ -150,6 +151,7 @@ def setupMenu(ed):
     a = QAction('Regenerate Japanese definitions', ed)
     a.triggered.connect(lambda _, e=ed: onRegenGlosses(e))
     ed.form.menuEdit.addAction(a)
+    a.setShortcut(QKeySequence(keybinding))
 
 
 def onRegenGlosses(ed):
