@@ -158,6 +158,7 @@ def addToContextMenu(view, menu):
     menu.addSeparator()
     a = menu.addAction('Regenerate Japanese definitions')
     a.triggered.connect(lambda _, e=view: onRegenGlosses(e))
+    a.setShortcut(QKeySequence(keybinding))
 
 
 def onRegenGlosses(ed):
