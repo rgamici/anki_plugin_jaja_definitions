@@ -91,6 +91,7 @@ class Regen():
 
     def prepare(self):
         fs = [mw.col.getNote(id=fid) for fid in self.fids]
+        i = 0
         for f in fs:
             try:
                 if self.force_update == 'no' and f[jap_defField]:
@@ -101,32 +102,35 @@ class Regen():
                 else:
                     word = f[expressionField]
                     thread = threading.Thread(target=self.fetch_def,
-                                              args=(word,))
-                    self.values[word] = {}
-                    self.values[word]['f'] = f
-                    self.values[word]['thread'] = thread
+                                              args=(i,))
+                    self.values[i] = {}
+                    self.values[i]['word'] = word
+                    self.values[i]['f'] = f
+                    self.values[i]['thread'] = thread
                     thread.start()
+                    i += 1
             except:
                 print('definitions failed:')
                 traceback.print_exc()
 
-    def fetch_def(self, word):
+    def fetch_def(self, i):
         with self.sema:
+            word = self.values[i]['word']
             definition = fetchDef(word)
-            self.values[word]['definition'] = definition
+            self.values[i]['definition'] = definition
 
     def wait_threads(self):
-        for word, info in self.values.items():
-            thread = self.values[word]['thread']
+        for i, info in self.values.items():
+            thread = self.values[i]['thread']
             thread.join()
-            self.update_def(word)
+            self.update_def(i)
         mw.progress.finish()
         if len(self.fids) == 1:
             self.ed.form.tableView.selectRow(self.row)
 
-    def update_def(self, word):
-        definition = self.values[word]['definition']
-        f = self.values[word]['f']
+    def update_def(self, i):
+        definition = self.values[i]['definition']
+        f = self.values[i]['f']
         try:
             if self.force_update == "append":
                 if f[jap_defField]:
