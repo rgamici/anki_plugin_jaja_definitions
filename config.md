@@ -3,7 +3,7 @@ If you want to use different field names, edit the following variables:
 
 * **"expressionField"**: (default: "Japanese") This is the field that has the Japanese word that will be searched in weblio.
 
-* **"jap_defField"**: (default: "JapaneseExpression") This field will receive the fetched definition from weblio.
+* **"definitionField"**: (default: "JapaneseExpression") This field will receive the fetched definition from weblio.
 
 Other variables: 
 (No need to restart)

@@ -1,5 +1,5 @@
 {"expressionField": "Japanese",
- "jap_defField": "JapaneseDefinition",
+ "definitionField": "JapaneseDefinition",
  "max_threads": 15,
  "force_update": "no",
  "update_separator": "<br>",

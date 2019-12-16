@@ -27,7 +27,7 @@ import traceback
 # Variables (can be edited on Addons > Config
 config = mw.addonManager.getConfig(__name__)
 expressionField = config['expressionField']
-jap_defField = config['jap_defField']
+definitionField = config['definitionField']
 keybinding = config['keybinding']
 
 # Labels
@@ -98,7 +98,7 @@ class Regen():
         i = 0
         for f in fs:
             try:
-                if self.config['force_update'] == 'no' and f[jap_defField]:
+                if self.config['force_update'] == 'no' and f[definitionField]:
                     self.completed += 1
                     mw.progress.update(
                         label=label_progress_update,
@@ -133,11 +133,11 @@ class Regen():
         f = self.values[i]['f']
         try:
             if self.config['force_update'] == "append":
-                if f[jap_defField]:
-                    f[jap_defField] += self.config['update_separator']
-                f[jap_defField] += self.values[i]['definition']
+                if f[definitionField]:
+                    f[definitionField] += self.config['update_separator']
+                f[definitionField] += self.values[i]['definition']
             else:
-                f[jap_defField] = self.values[i]['definition']
+                f[definitionField] = self.values[i]['definition']
         except:
             print('definitions failed:')
             traceback.print_exc()
