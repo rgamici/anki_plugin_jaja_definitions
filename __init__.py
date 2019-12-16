@@ -29,8 +29,12 @@ config = mw.addonManager.getConfig(__name__)
 expressionField = config['expressionField']
 jap_defField = config['jap_defField']
 keybinding = config['keybinding']
-# max_threads = config['max_threads']
-# force_update = config['force_update']
+
+# Labels
+# text shown while processing cards
+label_progress_update = 'Generating Japanese definitions...'
+# text shown on menu to run the functions
+label_menu = 'Regenerate Japanese definitions'
 
 # Fetch definition from Weblio ================================================
 
@@ -44,13 +48,14 @@ def fetchDef(term):
     NetDicBody = soup.find('div', {'class': "kiji"})
     if NetDicBody is not None:
         mult_def = NetDicBody.find_all('span', {'style': "text-indent:0;"})
-        counter = 1
         if mult_def != []:
+            counter = 1
             for line in mult_def:
                 if line.find('span', {'style': "text-indent:0;"}) is None:
                     defText += ("<b>(" + str(counter) + ")</b> "
                                 + line.get_text().strip() + "<br/>")
                     counter = counter + 1
+                # else ?????
         else:
             defText = NetDicBody.get_text().strip()
             honorific = re.search(
@@ -75,18 +80,17 @@ class Regen():
         self.ed = ed
         self.fids = fids
         self.completed = 0
-        config = mw.addonManager.getConfig(__name__)
-        self.max_threads = config['max_threads']
-        self.force_update = config['force_update']
-        self.update_separator = config['update_separator']
-        self.sema = threading.BoundedSemaphore(self.max_threads)
+        self.config = mw.addonManager.getConfig(__name__)
+        # self.force_update = config['force_update']
+        # self.update_separator = config['update_separator']
+        self.sema = threading.BoundedSemaphore(config['max_threads'])
         self.values = {}
         if len(self.fids) == 1:  # Single card selected
             self.row = self.ed.currentRow()
             self.ed.form.tableView.selectionModel().clear()
         mw.progress.start(max=len(self.fids), immediate=True)
         mw.progress.update(
-            label='Generating Japanese definitions...',
+            label=label_progress_update,
             value=0)
 
     def prepare(self):
@@ -94,18 +98,17 @@ class Regen():
         i = 0
         for f in fs:
             try:
-                if self.force_update == 'no' and f[jap_defField]:
+                if self.config['force_update'] == 'no' and f[jap_defField]:
                     self.completed += 1
                     mw.progress.update(
-                        label='Generating Japanese definitions...',
+                        label=label_progress_update,
                         value=self.completed)
                 else:
-                    word = f[expressionField]
+                    self.values[i] = {}
+                    self.values[i]['f'] = f
+                    self.values[i]['word'] = f[expressionField]
                     thread = threading.Thread(target=self.fetch_def,
                                               args=(i,))
-                    self.values[i] = {}
-                    self.values[i]['word'] = word
-                    self.values[i]['f'] = f
                     self.values[i]['thread'] = thread
                     thread.start()
                     i += 1
@@ -115,12 +118,10 @@ class Regen():
 
     def fetch_def(self, i):
         with self.sema:
-            word = self.values[i]['word']
-            definition = fetchDef(word)
-            self.values[i]['definition'] = definition
+            self.values[i]['definition'] = fetchDef(self.values[i]['word'])
 
     def wait_threads(self):
-        for i, info in self.values.items():
+        for i, _ in self.values.items():
             thread = self.values[i]['thread']
             thread.join()
             self.update_def(i)
@@ -129,15 +130,14 @@ class Regen():
             self.ed.form.tableView.selectRow(self.row)
 
     def update_def(self, i):
-        definition = self.values[i]['definition']
         f = self.values[i]['f']
         try:
-            if self.force_update == "append":
+            if self.config['force_update'] == "append":
                 if f[jap_defField]:
-                    f[jap_defField] += self.update_separator
-                f[jap_defField] += definition
+                    f[jap_defField] += self.config['update_separator']
+                f[jap_defField] += self.values[i]['definition']
             else:
-                f[jap_defField] = definition
+                f[jap_defField] = self.values[i]['definition']
         except:
             print('definitions failed:')
             traceback.print_exc()
@@ -147,12 +147,12 @@ class Regen():
             raise Exception()
         self.completed += 1
         mw.progress.update(
-            label='Generating Japanese definitions...',
+            label=label_progress_update,
             value=self.completed)
 
 
 def setupMenu(ed):
-    a = QAction('Regenerate Japanese definitions', ed)
+    a = QAction(label_menu, ed)
     a.triggered.connect(lambda _, e=ed: onRegenGlosses(e))
     ed.form.menuEdit.addAction(a)
     a.setShortcut(QKeySequence(keybinding))
@@ -160,13 +160,12 @@ def setupMenu(ed):
 
 def addToContextMenu(view, menu):
     menu.addSeparator()
-    a = menu.addAction('Regenerate Japanese definitions')
+    a = menu.addAction(label_menu)
     a.triggered.connect(lambda _, e=view: onRegenGlosses(e))
     a.setShortcut(QKeySequence(keybinding))
 
 
 def onRegenGlosses(ed):
-    n = "Regenerate Ja-Ja definitions"
     regen = Regen(ed, ed.selectedNotes())
     regen.prepare()
     regen.wait_threads()
