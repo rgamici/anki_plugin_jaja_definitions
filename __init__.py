@@ -58,11 +58,14 @@ def fetchDef(term):
                 # else ?????
         else:
             defText = NetDicBody.get_text().strip()
-            honorific = re.search(
+            reference = re.search(
                 '名詞「(.*?)」に、接頭辞「.」がついたもの。',
                 defText)
-            if honorific:
-                return(fetchDef(honorific.group(1)))
+            if reference:
+                return(fetchDef(reference.group(1)))
+            reference = re.search('活用の動詞「(.*?)(?:する)?」の.*?形', defText)
+            if reference:
+                return(fetchDef(reference.group(1)))
             if re.search('出典: フリー百科事典『ウィキペディア（Wikipedia）』',
                          defText):
                 return ''
