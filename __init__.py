@@ -63,6 +63,9 @@ def fetchDef(term):
                 defText)
             if honorific:
                 return(fetchDef(honorific.group(1)))
+            if re.search('出典: フリー百科事典『ウィキペディア（Wikipedia）』',
+                         defText):
+                return ''
             # remove entry header (ends with "】 *")
             defText = re.sub('^.*】 *', '', defText)
             defText = re.sub('^.{1,10} ?読み方：[ぁ-んーア-ンａ-ｚＡ-Ｚ（）]+ *',
