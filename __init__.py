@@ -46,7 +46,14 @@ def fetchDef(term):
     response = urllib.request.urlopen(pageUrl)
     soup = BeautifulSoup(response, features="html.parser")
     NetDicBody = soup.find('div', {'class': "kiji"})
+    # looking for <div class=NetDicBody> would be simpler,
+    # but it would lose the synomyms
     if NetDicBody is not None:
+        if len(NetDicBody.find_all(
+                'div', {'class': 'NetDicBody'}, limit=2)) > 1:
+            # some entries have two words inside it and a different structure
+            # the second one looks bogus
+            NetDicBody = NetDicBody.find('div', {'class': 'NetDicBody'})
         mult_def = NetDicBody.find_all('span', {'style': "text-indent:0;"})
         if mult_def != []:
             counter = 1
