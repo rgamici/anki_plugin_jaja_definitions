@@ -36,6 +36,25 @@ label_progress_update = 'Generating Japanese definitions...'
 # text shown on menu to run the functions
 label_menu = 'Regenerate Japanese definitions'
 
+# regex lists
+# crawling correct page
+crawling_list = [
+    # [search_string, command, compiled_regex]
+    ['名詞「(.*?)」に、接頭辞「.」がついたもの。','fetch', None],
+    ['活用の動詞「(.*?)(?:する)?」の.*?形', 'fetch', None],
+    ['出典: フリー百科事典『ウィキペディア（Wikipedia）』', '', None],
+]
+
+# parsing
+parsing_list = [
+    # [search_string, substitution, compiled_regex]
+    ['^.*】 *', '', None],
+    ['^.{1,10} ?読み方：[ぁ-んーア-ンａ-ｚＡ-Ｚ（）]+ *', '', None],
+    [' *» 類語の一覧を見る *', '', None],
+    [' *>>『三省堂 大辞林 第三版』の表記・記号についての解説を見る', '', None],
+    ['「.{1,10}」に似た言葉', '<br/><b>似た言葉：</b>　', None],
+]
+
 # Fetch definition from Weblio ================================================
 
 
@@ -65,26 +84,17 @@ def fetchDef(term):
                     counter = counter + 1
         else:
             defText = soup.get_text().strip()
-            reference = re.search(
-                '名詞「(.*?)」に、接頭辞「.」がついたもの。',
-                defText)
-            if reference:
-                return(fetchDef(reference.group(1)))
-            reference = re.search('活用の動詞「(.*?)(?:する)?」の.*?形', defText)
-            if reference:
-                return(fetchDef(reference.group(1)))
-            if re.search('出典: フリー百科事典『ウィキペディア（Wikipedia）』',
-                         defText):
-                return ''
-            # remove entry header (ends with "】 *")
-            defText = re.sub('^.*】 *', '', defText)
-            defText = re.sub('^.{1,10} ?読み方：[ぁ-んーア-ンａ-ｚＡ-Ｚ（）]+ *',
-                             '', defText)
-            defText = re.sub(' *» 類語の一覧を見る *', '', defText)
-            defText = re.sub(' *>>『三省堂 大辞林 第三版』の表記' +
-                             '・記号についての解説を見る', '', defText)
-            defText = re.sub('「.{1,10}」に似た言葉',
-                             '<br/><b>似た言葉：</b>　', defText)
+            # crawl correct page
+            for line in crawling_list:
+                search = line[2].search(defText)
+                if search:
+                    if line[1] == 'fetch':
+                        return(fetchDef(search.group(1)))
+                    else:
+                        return('')
+            # parsing
+            for line in parsing_list:
+                defText = line[2].sub(line[1], defText)
     return defText
 # Update note =================================================================
 
@@ -165,6 +175,13 @@ class Regen():
             value=self.completed)
 
 
+def prepare_regex():
+    for i in range(len(crawling_list)):
+        crawling_list[i][2] = re.compile(crawling_list[i][0])
+    for i in range(len(parsing_list)):
+        parsing_list[i][2] = re.compile(parsing_list[i][0])
+
+
 def setupMenu(ed):
     a = QAction(label_menu, ed)
     a.triggered.connect(lambda _, e=ed: onRegenGlosses(e))
@@ -186,5 +203,6 @@ def onRegenGlosses(ed):
     mw.requireReset()
 
 
+prepare_regex()
 addHook('browser.setupMenus', setupMenu)
 addHook('browser.onContextMenu', addToContextMenu)
