@@ -45,26 +45,26 @@ def fetchDef(term):
                + urllib.parse.quote(term.encode('utf-8')))
     response = urllib.request.urlopen(pageUrl)
     soup = BeautifulSoup(response, features="html.parser")
-    NetDicBody = soup.find('div', {'class': "kiji"})
+    soup = soup.find('div', {'class': "kiji"})
     # looking for <div class=NetDicBody> would be simpler,
     # but it would lose the synomyms
-    if NetDicBody is not None:
-        if len(NetDicBody.find_all(
-                'div', {'class': 'NetDicBody'}, limit=2)) > 1:
+    if soup is not None:
+        if len(soup.find_all('div', {'class': 'NetDicBody'}, limit=2)) > 1:
             # some entries have two words inside it and a different structure
             # the second one looks bogus
-            NetDicBody = NetDicBody.find('div', {'class': 'NetDicBody'})
-        mult_def = NetDicBody.find_all('span', {'style': "text-indent:0;"})
-        if mult_def != []:
+            soup = soup.find('div', {'class': 'NetDicBody'})
+        if soup.find('span', {'style': "text-indent:0;"}):
+            # Definition is composed of multiple elements
             counter = 1
-            for line in mult_def:
+            for line in soup.find_all('span', {'style': "text-indent:0;"}):
                 if line.find('span', {'style': "text-indent:0;"}) is None:
+                    # Some parents are marked with the same style
+                    # including them would create duplicated texts
                     defText += ("<b>(" + str(counter) + ")</b> "
                                 + line.get_text().strip() + "<br/>")
                     counter = counter + 1
-                # else ?????
         else:
-            defText = NetDicBody.get_text().strip()
+            defText = soup.get_text().strip()
             reference = re.search(
                 '名詞「(.*?)」に、接頭辞「.」がついたもの。',
                 defText)
