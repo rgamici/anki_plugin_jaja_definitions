@@ -156,8 +156,10 @@ class Regen():
     def update_def(self, i):
         f = self.values[i]['f']
         try:
+            if self.values[i]['definition'] == '':
+                f.addTag(self.config['error_tag'])
             if self.config['force_update'] == "append":
-                if f[definitionField]:
+                if f[definitionField] and (self.values[i]['definition'] != ''):
                     f[definitionField] += self.config['update_separator']
                 f[definitionField] += self.values[i]['definition']
             else:

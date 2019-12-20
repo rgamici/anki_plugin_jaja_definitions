@@ -17,3 +17,8 @@ Other variables:
 
 * **"update_separator"**: (default: `"<br>"`) When `force_update` is set to append, this string is used to separate the current contents and the fetched definition.
   `<br>` inserts a newline.
+
+* **"error_tag"**: (default: `"FetchError"` When a definition is not found, the value of this field is added as a tag to those cards.
+  If you don't want to tag those cards, change the value to`""`.
+  If there is a space in this variable's value, each word will be a separated tag, e. g., `"Fetch Error"` will be tagged with `"Error"` and `"Fetch"`.
+
