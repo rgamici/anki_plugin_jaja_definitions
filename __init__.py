@@ -5,7 +5,22 @@
 #
 # Description: Plugin to add Japanese definition on Japanese vocabulary,
 # based on the Japanese Definitions for Korean Vocabulary plugin for Anki
-# pulls definitions from Weblio's dictionary.
+# It pulls definitions from Weblio's dictionary.
+#
+# Modifying this add-on for other languages/dictionaries:
+#
+# The function fetchDef() can be altered to deal with other dictionaries
+# or other languages.
+# Some of the processing is controlled by the variables `crawling_list`
+# and `parsing_list` to avoid recompiling the regex when processing each
+# expression.
+#
+# It is necessary to also modify the labels show in the menu and progress bar.
+# The variables that store them are below the import block.
+#
+# The class Regen() and the functions below it are language independent.
+# It is not necessary to modify anything there when porting this add-on for
+# other language.
 
 from bs4 import BeautifulSoup
 import urllib.request
@@ -24,7 +39,7 @@ import threading
 import traceback
 
 
-# Variables (can be edited on Addons > Config
+# Variables controlled by the user (can be edited on Addons > Config)
 config = mw.addonManager.getConfig(__name__)
 expressionField = config['expressionField']
 definitionField = config['definitionField']
@@ -36,17 +51,17 @@ label_progress_update = 'Generating Japanese definitions...'
 # text shown on menu to run the functions
 label_menu = 'Regenerate Japanese definitions'
 
-# regex lists
-# crawling correct page
+# regex lists for parsing
 crawling_list = [
+    # Used when the definition points to another page
     # [search_string, command, compiled_regex]
     ['名詞「(.*?)」に、接頭辞「.」がついたもの。','fetch', None],
     ['活用の動詞「(.*?)(?:する)?」の.*?形', 'fetch', None],
     ['出典: フリー百科事典『ウィキペディア（Wikipedia）』', '', None],
 ]
 
-# parsing
 parsing_list = [
+    # Used to remove extra text and do some proper formatting
     # [search_string, substitution, compiled_regex]
     ['^.*】 *', '', None],
     ['^.{1,10} ?読み方：[ぁ-んーア-ンａ-ｚＡ-Ｚ（）]+ *', '', None],
@@ -55,10 +70,10 @@ parsing_list = [
     ['「.{1,10}」に似た言葉', '<br/><b>似た言葉：</b>　', None],
 ]
 
-# Fetch definition from Weblio ================================================
-
 
 def fetchDef(term):
+    """Scrap Weblio and return a parsed definition"""
+
     defText = ""
     pageUrl = ("http://www.weblio.jp/content/"
                + urllib.parse.quote(term.encode('utf-8')))
@@ -96,20 +111,51 @@ def fetchDef(term):
             for line in parsing_list:
                 defText = line[2].sub(line[1], defText)
     return defText
-# Update note =================================================================
 
 
 class Regen():
+    """Used to organize the work flow to update the selected cards
+
+    Attributes
+    ----------
+    ed :
+        Anki Card browser object
+    fids :
+        List of selected cards
+    completed : int
+        Track how many cards were already processed
+    config : dict
+        Stores the user's (customized) parameters
+    sema :
+        Semaphore to control the number of concurrent threads
+    values: dict
+        Dictionary to store the expression, its note, thread,
+        and fetched definition.
+        It makes it easier to handle the data from the threads
+
+    Methods
+    ------
+    prepare()
+        Check cards that have to be processed and create threads
+        NOTE: the try/except block comes from the original code and it was
+              preserved to avoid unknown errors, it may be useless
+    fetch_def(i)
+        Function run by each thread, semaphore control how many are running
+    wait_threads()
+        Wait for threads to finish and then update definitions
+    update_def(i)
+        Update definition of the note stored in dict with key `i`
+
+    """
     def __init__(self, ed, fids):
         self.ed = ed
         self.fids = fids
         self.completed = 0
         self.config = mw.addonManager.getConfig(__name__)
-        # self.force_update = config['force_update']
-        # self.update_separator = config['update_separator']
         self.sema = threading.BoundedSemaphore(config['max_threads'])
         self.values = {}
-        if len(self.fids) == 1:  # Single card selected
+        if len(self.fids) == 1:
+            # Single card selected, need to deselect it before updating
             self.row = self.ed.currentRow()
             self.ed.form.tableView.selectionModel().clear()
         mw.progress.start(max=len(self.fids), immediate=True)
@@ -118,6 +164,7 @@ class Regen():
             value=0)
 
     def prepare(self):
+        """Check cards that have to be processed and create threads"""
         fs = [mw.col.getNote(id=fid) for fid in self.fids]
         i = 0
         for f in fs:
@@ -141,19 +188,24 @@ class Regen():
                 traceback.print_exc()
 
     def fetch_def(self, i):
+        """Function run by each thread, semaphore control how many are running
+        """
         with self.sema:
             self.values[i]['definition'] = fetchDef(self.values[i]['word'])
 
     def wait_threads(self):
+        """Wait for threads to finish and then update definitions"""
         for i, _ in self.values.items():
             thread = self.values[i]['thread']
             thread.join()
             self.update_def(i)
         mw.progress.finish()
         if len(self.fids) == 1:
+            # restore the selection of the single card
             self.ed.form.tableView.selectRow(self.row)
 
     def update_def(self, i):
+        """Update definition of note stored in dict with key `i`"""
         f = self.values[i]['f']
         try:
             if self.values[i]['definition'] == '':
@@ -178,6 +230,7 @@ class Regen():
 
 
 def prepare_regex():
+    """Compile regex lists and store the compiled objects"""
     for i in range(len(crawling_list)):
         crawling_list[i][2] = re.compile(crawling_list[i][0])
     for i in range(len(parsing_list)):
@@ -185,6 +238,7 @@ def prepare_regex():
 
 
 def setupMenu(ed):
+    """Add entry in Edit menu"""
     a = QAction(label_menu, ed)
     a.triggered.connect(lambda _, e=ed: onRegenGlosses(e))
     ed.form.menuEdit.addAction(a)
@@ -192,6 +246,7 @@ def setupMenu(ed):
 
 
 def addToContextMenu(view, menu):
+    """Add entry to context menu (right click)"""
     menu.addSeparator()
     a = menu.addAction(label_menu)
     a.triggered.connect(lambda _, e=view: onRegenGlosses(e))
@@ -199,6 +254,7 @@ def addToContextMenu(view, menu):
 
 
 def onRegenGlosses(ed):
+    """ """
     regen = Regen(ed, ed.selectedNotes())
     regen.prepare()
     regen.wait_threads()
